@@ -53,6 +53,28 @@ const deleteSchedule = async (req, res) => {
     res.status(500).json({ message: error.message });
   }
 };
+const markAttendance = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { attendance } = req.body;
+    
+    if (!["present", "absent", "pending"].includes(attendance)) {
+      return res.status(400).json({ message: "Invalid attendance status" });
+    }
+    
+    const schedule = await Schedule.findByIdAndUpdate(
+      id, 
+      { attendance }, 
+      { new: true }
+    );
+    
+    if (!schedule) return res.status(404).json({ message: "Class not found ❌" });
+    
+    res.status(200).json({ message: `Attendance marked as ${attendance}`, schedule });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
 
 module.exports = {
   addSchedule,
@@ -60,4 +82,5 @@ module.exports = {
   getSchedulesByDay,
   updateSchedule,
   deleteSchedule,
+  markAttendance,
 };
