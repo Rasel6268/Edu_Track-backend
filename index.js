@@ -25,8 +25,62 @@ async function run() {
     const transactionCollection = database.collection("transactions");
     const budgetCollection = database.collection("budgets");
     const goalsCollection = database.collection("goals");
-    const studySessionsCollection = database.collection('studysessions')
+    const studySessionsCollection = database.collection("studysessions");
+    const studentCollection = database.collection("students");
 
+    app.post("/students/add", async (req, res) => {
+      try {
+        const student = { ...req.body, user_role: "student" };
+        const result = await studentCollection.insertOne(student);
+        res
+          .status(201)
+          .json({ message: "Student added successfully ✅", student: result });
+      } catch (error) {
+        res.status(400).json({ message: error.message });
+      }
+    });
+
+    // Get All Students
+    app.get("/students", async (req, res) => {
+      try {
+        const students = await studentCollection.find({}).toArray();
+        res.status(200).json(students);
+      } catch (error) {
+        res.status(500).json({ message: error.message });
+      }
+    });
+
+    // Update Student
+    app.put("/students/:id", async (req, res) => {
+      try {
+        const student = await studentCollection.findOneAndUpdate(
+          { _id: new ObjectId(req.params.id) },
+          { $set: req.body },
+          { returnDocument: "after" }
+        );
+        if (!student.value)
+          return res.status(404).json({ message: "Student not found" });
+        res
+          .status(200)
+          .json({ message: "Student updated ✅", student: student.value });
+      } catch (error) {
+        res.status(400).json({ message: error.message });
+      }
+    });
+
+    // Delete Student
+    app.delete("/students/:id", async (req, res) => {
+      try {
+        const result = await studentCollection.deleteOne({
+          _id: new ObjectId(req.params.id),
+        });
+        if (result.deletedCount === 0)
+          return res.status(404).json({ message: "Student not found" });
+        res.status(200).json({ message: "Student deleted ✅" });
+      } catch (error) {
+        res.status(500).json({ message: error.message });
+      }
+    });
 
     // 📌 Schedule Routes
     app.post("/schedule/add", async (req, res) => {
@@ -193,11 +247,9 @@ async function run() {
         const { category, limit, period = "monthly" } = req.body;
 
         if (!category || !limit || limit <= 0) {
-          return res
-            .status(400)
-            .json({
-              message: "Please provide a valid category and positive limit",
-            });
+          return res.status(400).json({
+            message: "Please provide a valid category and positive limit",
+          });
         }
 
         let budget = await budgetCollection.findOne({ userId, category });
@@ -303,7 +355,6 @@ async function run() {
       }
     });
 
-    
     app.get("/transactions/:userId", async (req, res) => {
       try {
         const { userId } = req.params;
@@ -427,12 +478,10 @@ async function run() {
         };
 
         const result = await transactionCollection.insertOne(transaction);
-        res
-          .status(201)
-          .json({
-            message: "Transaction added",
-            transaction: { ...transaction, _id: result.insertedId },
-          });
+        res.status(201).json({
+          message: "Transaction added",
+          transaction: { ...transaction, _id: result.insertedId },
+        });
       } catch (err) {
         console.error(err);
         res.status(500).json({ message: "Server error adding transaction" });
@@ -514,11 +563,9 @@ async function run() {
           req.body;
 
         if (!title || !subject || !deadline || !userEmail) {
-          return res
-            .status(400)
-            .json({
-              message: "Title, subject, deadline, and userEmail are required",
-            });
+          return res.status(400).json({
+            message: "Title, subject, deadline, and userEmail are required",
+          });
         }
 
         const goal = {
@@ -533,12 +580,10 @@ async function run() {
         };
 
         const result = await goalsCollection.insertOne(goal);
-        res
-          .status(201)
-          .json({
-            message: "Goal created",
-            goal: { ...goal, _id: result.insertedId },
-          });
+        res.status(201).json({
+          message: "Goal created",
+          goal: { ...goal, _id: result.insertedId },
+        });
       } catch (err) {
         console.error(err);
         res.status(500).json({ message: "Server error creating goal" });
@@ -653,7 +698,8 @@ async function run() {
     });
     app.post("/goals", async (req, res) => {
       try {
-        const { title, subject, description, deadline, priority, userEmail } = req.body;
+        const { title, subject, description, deadline, priority, userEmail } =
+          req.body;
 
         if (!title || !subject || !deadline || !userEmail) {
           return res.status(400).json({
@@ -688,7 +734,10 @@ async function run() {
     app.get("/goals/:userEmail", async (req, res) => {
       try {
         const { userEmail } = req.params;
-        const goals = await goalsCollection.find({ userEmail }).sort({ createdAt: -1 }).toArray();
+        const goals = await goalsCollection
+          .find({ userEmail })
+          .sort({ createdAt: -1 })
+          .toArray();
         res.json(goals);
       } catch (err) {
         console.error(err);
@@ -749,7 +798,9 @@ async function run() {
         );
 
         res.json({
-          message: `Goal marked as ${updated.value.completed ? "completed" : "incomplete"}`,
+          message: `Goal marked as ${
+            updated.value.completed ? "completed" : "incomplete"
+          }`,
           goal: updated.value,
         });
       } catch (err) {
@@ -795,7 +846,9 @@ async function run() {
         });
       } catch (err) {
         console.error(err);
-        res.status(500).json({ message: "Server error fetching goals statistics" });
+        res
+          .status(500)
+          .json({ message: "Server error fetching goals statistics" });
       }
     });
 
@@ -805,10 +858,10 @@ async function run() {
       try {
         const { userEmail } = req.params;
         const { page = 1, limit = 10, completed, subject, date } = req.query;
-        
+
         // Build filter object
         const filter = { userEmail };
-        if (completed !== undefined) filter.completed = completed === 'true';
+        if (completed !== undefined) filter.completed = completed === "true";
         if (subject) filter.subject = subject;
         if (date) filter.date = new Date(date);
 
@@ -825,23 +878,34 @@ async function run() {
           sessions,
           totalPages: Math.ceil(total / parseInt(limit)),
           currentPage: parseInt(page),
-          total
+          total,
         });
       } catch (error) {
-        console.error('Get sessions error:', error);
-        res.status(500).json({ message: 'Server error fetching study sessions' });
+        console.error("Get sessions error:", error);
+        res
+          .status(500)
+          .json({ message: "Server error fetching study sessions" });
       }
     });
 
     // Create new study session
     app.post("/study-sessions", async (req, res) => {
       try {
-        const { subject, topic, date, startTime, duration, notes, userEmail } = req.body;
+        const { subject, topic, date, startTime, duration, notes, userEmail } =
+          req.body;
 
         // Validation
-        if (!subject || !topic || !date || !startTime || !duration || !userEmail) {
-          return res.status(400).json({ 
-            message: 'Subject, topic, date, startTime, duration, and userEmail are required' 
+        if (
+          !subject ||
+          !topic ||
+          !date ||
+          !startTime ||
+          !duration ||
+          !userEmail
+        ) {
+          return res.status(400).json({
+            message:
+              "Subject, topic, date, startTime, duration, and userEmail are required",
           });
         }
 
@@ -854,18 +918,20 @@ async function run() {
           notes: notes || "",
           userEmail,
           completed: false,
-          createdAt: new Date()
+          createdAt: new Date(),
         };
 
         const result = await studySessionsCollection.insertOne(session);
-        
+
         res.status(201).json({
-          message: 'Study session created successfully',
-          session: { ...session, _id: result.insertedId }
+          message: "Study session created successfully",
+          session: { ...session, _id: result.insertedId },
         });
       } catch (error) {
-        console.error('Create session error:', error);
-        res.status(500).json({ message: 'Server error creating study session' });
+        console.error("Create session error:", error);
+        res
+          .status(500)
+          .json({ message: "Server error creating study session" });
       }
     });
 
@@ -890,16 +956,18 @@ async function run() {
         );
 
         if (!result.value) {
-          return res.status(404).json({ message: 'Study session not found' });
+          return res.status(404).json({ message: "Study session not found" });
         }
 
         res.json({
-          message: 'Study session updated successfully',
-          session: result.value
+          message: "Study session updated successfully",
+          session: result.value,
         });
       } catch (error) {
-        console.error('Update session error:', error);
-        res.status(500).json({ message: 'Server error updating study session' });
+        console.error("Update session error:", error);
+        res
+          .status(500)
+          .json({ message: "Server error updating study session" });
       }
     });
 
@@ -909,17 +977,19 @@ async function run() {
         const { id } = req.params;
 
         const result = await studySessionsCollection.findOneAndDelete({
-          _id: new ObjectId(id)
+          _id: new ObjectId(id),
         });
 
         if (!result.value) {
-          return res.status(404).json({ message: 'Study session not found' });
+          return res.status(404).json({ message: "Study session not found" });
         }
 
-        res.json({ message: 'Study session deleted successfully' });
+        res.json({ message: "Study session deleted successfully" });
       } catch (error) {
-        console.error('Delete session error:', error);
-        res.status(500).json({ message: 'Server error deleting study session' });
+        console.error("Delete session error:", error);
+        res
+          .status(500)
+          .json({ message: "Server error deleting study session" });
       }
     });
 
@@ -928,9 +998,11 @@ async function run() {
       try {
         const { id } = req.params;
 
-        const session = await studySessionsCollection.findOne({ _id: new ObjectId(id) });
+        const session = await studySessionsCollection.findOne({
+          _id: new ObjectId(id),
+        });
         if (!session) {
-          return res.status(404).json({ message: 'Study session not found' });
+          return res.status(404).json({ message: "Study session not found" });
         }
 
         const result = await studySessionsCollection.findOneAndUpdate(
@@ -940,12 +1012,16 @@ async function run() {
         );
 
         res.json({
-          message: `Study session marked as ${result.value.completed ? 'completed' : 'incomplete'}`,
-          session: result.value
+          message: `Study session marked as ${
+            result.value.completed ? "completed" : "incomplete"
+          }`,
+          session: result.value,
         });
       } catch (error) {
-        console.error('Toggle session completion error:', error);
-        res.status(500).json({ message: 'Server error updating study session' });
+        console.error("Toggle session completion error:", error);
+        res
+          .status(500)
+          .json({ message: "Server error updating study session" });
       }
     });
 
@@ -954,7 +1030,7 @@ async function run() {
       try {
         const { userEmail } = req.params;
         const { startDate, endDate } = req.query;
-        
+
         const matchStage = { userEmail };
         if (startDate || endDate) {
           matchStage.date = {};
@@ -962,37 +1038,45 @@ async function run() {
           if (endDate) matchStage.date.$lte = new Date(endDate);
         }
 
-        const stats = await studySessionsCollection.aggregate([
-          { $match: matchStage },
-          {
-            $group: {
-              _id: '$subject',
-              totalSessions: { $sum: 1 },
-              totalHours: { $sum: '$duration' },
-              completedSessions: {
-                $sum: { $cond: [{ $eq: ['$completed', true] }, 1, 0] }
-              }
-            }
-          }
-        ]).toArray();
+        const stats = await studySessionsCollection
+          .aggregate([
+            { $match: matchStage },
+            {
+              $group: {
+                _id: "$subject",
+                totalSessions: { $sum: 1 },
+                totalHours: { $sum: "$duration" },
+                completedSessions: {
+                  $sum: { $cond: [{ $eq: ["$completed", true] }, 1, 0] },
+                },
+              },
+            },
+          ])
+          .toArray();
 
-        const totalSessions = await studySessionsCollection.countDocuments(matchStage);
-        
-        const totalHoursResult = await studySessionsCollection.aggregate([
-          { $match: matchStage },
-          { $group: { _id: null, total: { $sum: '$duration' } } }
-        ]).toArray();
+        const totalSessions = await studySessionsCollection.countDocuments(
+          matchStage
+        );
+
+        const totalHoursResult = await studySessionsCollection
+          .aggregate([
+            { $match: matchStage },
+            { $group: { _id: null, total: { $sum: "$duration" } } },
+          ])
+          .toArray();
 
         const totalHours = totalHoursResult[0]?.total || 0;
 
         res.json({
           bySubject: stats,
           totalSessions,
-          totalHours
+          totalHours,
         });
       } catch (error) {
-        console.error('Get session stats error:', error);
-        res.status(500).json({ message: 'Server error fetching session statistics' });
+        console.error("Get session stats error:", error);
+        res
+          .status(500)
+          .json({ message: "Server error fetching session statistics" });
       }
     });
 
@@ -1005,9 +1089,7 @@ async function run() {
     app.listen(PORT, () => {
       console.log(`Server running on http://localhost:${PORT} 🚀`);
     });
-  } catch (err) {
-   
-  }
+  } catch (err) {}
 }
 
 run().catch(console.dir);
