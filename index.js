@@ -42,9 +42,22 @@ async function run() {
 
     // Get All Students
     app.get("/students", async (req, res) => {
+      const { email } = req.query;
+
+      if (!email) {
+        return res
+          .status(400)
+          .json({ message: "Email query parameter is required" });
+      }
+
       try {
-        const students = await studentCollection.find({}).toArray();
-        res.status(200).json(students);
+        const student = await studentCollection.findOne({ email });
+
+        if (!student) {
+          return res.status(404).json({ message: "Student not found" });
+        }
+
+        res.status(200).json(student);
       } catch (error) {
         res.status(500).json({ message: error.message });
       }
@@ -82,7 +95,7 @@ async function run() {
       }
     });
 
-    // 📌 Schedule Routes
+    //  Schedule Routes
     app.post("/schedule/add", async (req, res) => {
       try {
         const schedule = req.body;
@@ -95,7 +108,7 @@ async function run() {
       }
     });
 
-    // 📌 Get All Schedules by Email
+    //  Get All Schedules by Email
     app.get("/schedule/:email", async (req, res) => {
       try {
         const { email } = req.params;
@@ -110,7 +123,7 @@ async function run() {
       }
     });
 
-    // 📌 Get Schedules by Day
+    //  Get Schedules by Day
     app.get("/schedule/day/:day", async (req, res) => {
       try {
         const { day } = req.params;
@@ -124,7 +137,7 @@ async function run() {
       }
     });
 
-    // ✏️ Update Class
+    //  Update Class
     app.put("/schedule/:id", async (req, res) => {
       try {
         const { id } = req.params;
@@ -144,7 +157,7 @@ async function run() {
       }
     });
 
-    // 🗑️ Delete Class
+    //Delete Class
     app.delete("/schedule/:id", async (req, res) => {
       try {
         const { id } = req.params;
@@ -159,7 +172,7 @@ async function run() {
       }
     });
 
-    // 📝 Mark Attendance
+    //  Mark Attendance
     app.patch("/schedule/:id/attendance", async (req, res) => {
       try {
         const { id } = req.params;
@@ -187,11 +200,11 @@ async function run() {
       }
     });
 
-    // 💰 Budget Routes
+    //  Budget Routes
     app.get("/budget/:userId", async (req, res) => {
       try {
         const { userId } = req.params;
-        console.log(userId);
+
         const budgets = await budgetCollection.find({ userId }).toArray();
 
         const budgetsWithSpending = await Promise.all(
