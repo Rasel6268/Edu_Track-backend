@@ -14,16 +14,25 @@ const addSchedule = async (req, res) => {
 // 📌 Get All Schedules
 const getSchedules = async (req, res) => {
   try {
-    const schedules = await Schedule.find().sort({ day: 1, startTime: 1 });
+    const {email} = req.params
+    const filter = {
+       createdBy: email
+    }
+    
+    
+    const schedules = await Schedule.find(filter).sort({ day: 1, startTime: 1 });
+    console.log(schedules)
     res.status(200).json(schedules);
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
 };
 
+
 // 📌 Get Schedules by Day
 const getSchedulesByDay = async (req, res) => {
   try {
+    
     const { day } = req.params;
     const schedules = await Schedule.find({ day }).sort({ startTime: 1 });
     res.status(200).json(schedules);

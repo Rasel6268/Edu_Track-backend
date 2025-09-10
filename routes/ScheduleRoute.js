@@ -7,11 +7,11 @@ const {
   updateSchedule,
   deleteSchedule,
   markAttendance
-} = require("../controllers/scheduleController");
+} = require("../controllers/ScheduleController");
 
 // Routes
 router.post("/add", addSchedule);             
-router.get("/", getSchedules);               
+router.get("/:email", getSchedules);               
 router.get("/:day", getSchedulesByDay);       
 router.put("/:id", updateSchedule);           
 router.delete("/:id", deleteSchedule);   
